@@ -10,12 +10,12 @@
         body { 
             background: linear-gradient(135deg, #e0f7fa 0%, #ffffff 100%);
             font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
-            display: flex; justify-content: center; align-items: center; min-height: 100vh; margin: 0; padding: 15px;
+            display: flex; justify-content: center; align-items: flex-start; min-height: 100vh; margin: 0; padding: 20px;
         }
         .container {
             background: var(--glass-bg); backdrop-filter: blur(20px);
             border-radius: 24px; padding: 30px; box-shadow: 0 10px 40px rgba(0,0,0,0.08);
-            border: 1px solid rgba(255,255,255,0.4); width: 100%; max-width: 500px; transition: 0.5s;
+            border: 1px solid rgba(255,255,255,0.4); width: 100%; max-width: 600px; margin-top: 5vh;
         }
         .view { display: none; animation: fadeIn 0.4s ease; }
         .view.active { display: block; }
@@ -31,18 +31,24 @@
         .btn-therapist { background: linear-gradient(90deg, #20c997, #17a2b8); }
 
         /* 表單元素 */
-        h2 { text-align: center; color: #2c3e50; font-weight: 300; margin-bottom: 25px; }
-        .input-group { margin-bottom: 18px; }
-        label { display: block; margin-bottom: 6px; font-size: 0.85rem; color: #666; }
-        input, textarea {
+        h2 { text-align: center; color: #2c3e50; font-weight: 300; margin-bottom: 25px; border-bottom: 2px solid #eee; padding-bottom: 10px; }
+        .input-row { display: flex; gap: 10px; margin-bottom: 15px; }
+        .input-group { flex: 1; }
+        label { display: block; margin-bottom: 6px; font-size: 0.85rem; color: #666; font-weight: bold; }
+        input, select, textarea {
             width: 100%; padding: 12px; border: 1px solid rgba(0,0,0,0.1);
-            border-radius: 10px; background: rgba(255,255,255,0.6); box-sizing: border-box;
+            border-radius: 10px; background: rgba(255,255,255,0.6); box-sizing: border-box; font-family: inherit;
         }
+        input:focus, textarea:focus { outline: none; border-color: var(--accent); }
         button.action-btn {
             width: 100%; padding: 14px; background: #2c3e50; color: white;
             border: none; border-radius: 10px; cursor: pointer; font-weight: bold; margin-top: 10px;
         }
         .back-link { display: block; text-align: center; margin-top: 20px; color: #666; text-decoration: none; font-size: 0.9rem; }
+        
+        /* 歷史病歷區塊 */
+        .history-card { background: rgba(255,255,255,0.8); border-left: 4px solid var(--therapist-accent); padding: 15px; margin-bottom: 15px; border-radius: 8px; font-size: 0.9rem; }
+        .history-date { font-weight: bold; color: #333; margin-bottom: 8px; border-bottom: 1px dashed #ccc; padding-bottom: 5px; }
         #status { text-align: center; margin-top: 15px; font-weight: bold; }
     </style>
 </head>
@@ -50,38 +56,61 @@
 
 <div class="container">
     <div id="view-home" class="view active">
-        <h2>連邦物理治療所<br><small style="font-size: 0.6em; opacity: 0.6;">數位電子病歷系統</small></h2>
+        <h2 style="border:none;">連邦物理治療所<br><small style="font-size: 0.6em; opacity: 0.6;">數位電子病歷系統</small></h2>
         <div class="nav-menu">
-            <button class="nav-btn btn-patient" onclick="switchView('view-patient')">🏥 我是客戶 (初診填報)</button>
-            <button class="nav-btn btn-therapist" onclick="checkAuth()">👨‍⚕️ 我是治療師 (看診面板)</button>
+            <button class="nav-btn btn-patient" onclick="switchView('view-patient')">🏥 初診資料填報</button>
+            <button class="nav-btn btn-therapist" onclick="checkAuth()">👨‍⚕️ 治療師看診面板</button>
         </div>
     </div>
 
     <div id="view-patient" class="view">
         <h2>初診基本資料</h2>
-        <div class="input-group"><label>姓名</label><input type="text" id="p-name"></div>
-        <div class="input-group"><label>電話</label><input type="tel" id="p-phone"></div>
-        <div class="input-group"><label>生日</label><input type="date" id="p-dob"></div>
-        <button class="action-btn btn-patient" onclick="submitPatient()">提交資料</button>
-        <a href="#" class="back-link" onclick="switchView('view-home')">返回主選單</a>
+        <div class="input-row">
+            <div class="input-group"><label>姓名 *</label><input type="text" id="p-name" placeholder="王小明"></div>
+            <div class="input-group"><label>手機號碼 *</label><input type="tel" id="p-phone" placeholder="09XX-XXX-XXX"></div>
+        </div>
+        <div class="input-row">
+            <div class="input-group"><label>身分證字號</label><input type="text" id="p-idcard" placeholder="A123456789"></div>
+            <div class="input-group"><label>出生年月日</label><input type="date" id="p-dob"></div>
+        </div>
+        <div class="input-group" style="margin-bottom: 15px;">
+            <label>看診院所</label>
+            <select id="p-branch">
+                <option value="明德店">明德店</option>
+                <option value="小巨蛋店">小巨蛋店</option>
+            </select>
+        </div>
+        <button class="action-btn btn-patient" onclick="submitPatient()">送出資料建檔</button>
+        <a href="#" class="back-link" onclick="switchView('view-home')">取消並返回主選單</a>
     </div>
 
     <div id="view-therapist" class="view">
         <h2>治療師看診紀錄</h2>
+        
         <div style="display: flex; gap: 8px; margin-bottom: 15px;">
-            <input type="tel" id="t-search" placeholder="輸入電話調閱">
-            <button style="width: 100px; border-radius: 10px; border: none; background: #333; color: white;" onclick="searchPatient()">調閱</button>
+            <input type="text" id="t-search" placeholder="輸入 姓名 / 電話 / 身分證 查詢">
+            <button style="width: 100px; border-radius: 10px; border: none; background: #20c997; color: white; font-weight:bold; cursor:pointer;" onclick="searchPatient()">調閱</button>
         </div>
-        <div id="t-info" style="display:none; background: #e8f5e9; padding: 10px; border-radius: 10px; margin-bottom: 15px;">
-            目前看診：<b id="t-display-name"></b>
+        
+        <div id="t-info" style="display:none; background: #e8f5e9; padding: 15px; border-radius: 10px; margin-bottom: 20px;">
+            <div style="font-size: 1.2em; font-weight: bold; color: #20c997; margin-bottom: 5px;" id="t-display-name"></div>
+            <div style="font-size: 0.9em; color: #555;" id="t-display-meta"></div>
         </div>
-        <div id="soap-form" style="display:none;">
-            <textarea id="note-s" placeholder="S (主觀陳述)" style="margin-bottom: 10px;"></textarea>
-            <textarea id="note-o" placeholder="O (客觀發現)" style="margin-bottom: 10px;"></textarea>
-            <textarea id="note-a" placeholder="A (評估與診斷)" style="margin-bottom: 10px;"></textarea>
-            <textarea id="note-p" placeholder="P (治療計畫)" style="margin-bottom: 10px;"></textarea>
-            <button class="action-btn btn-therapist" onclick="submitSoap()">儲存病歷</button>
+
+        <div id="history-section" style="display:none; margin-bottom: 20px;">
+            <h3 style="font-size: 1rem; color: #666;">歷史病歷</h3>
+            <div id="history-list" style="max-height: 300px; overflow-y: auto; padding-right: 5px;"></div>
         </div>
+
+        <div id="soap-form" style="display:none; border-top: 2px solid #eee; padding-top: 15px;">
+            <h3 style="font-size: 1rem; color: #666;">新增今日紀錄 (S.O.A.P)</h3>
+            <textarea id="note-s" placeholder="S (主觀陳述 - 病患感受、疼痛指數)" style="margin-bottom: 10px; height:60px;"></textarea>
+            <textarea id="note-o" placeholder="O (客觀發現 - 理學檢查、評估)" style="margin-bottom: 10px; height:60px;"></textarea>
+            <textarea id="note-a" placeholder="A (評估與診斷)" style="margin-bottom: 10px; height:60px;"></textarea>
+            <textarea id="note-p" placeholder="P (治療計畫與衛教)" style="margin-bottom: 10px; height:60px;"></textarea>
+            <button class="action-btn btn-therapist" onclick="submitSoap()">歸檔入庫</button>
+        </div>
+        
         <a href="#" class="back-link" onclick="location.reload()">登出並返回</a>
     </div>
 
@@ -92,10 +121,10 @@
     // --- 核心設定 ---
     const SB_URL = 'https://kljytfzvrndvljeunvlr.supabase.co';
     const SB_KEY = 'sb_publishable_iXmBIxTh1mLsoQen6tJkww_0VC3YKyv';
-    const PASSWORD = '1234'; // ⚠️ 你可以在這裡修改治療師進入密碼
+    const PASSWORD = '1234'; 
     
     const db = supabase.createClient(SB_URL, SB_KEY);
-    let curId = null;
+    let curPatientId = null;
 
     // --- 視圖切換邏輯 ---
     function switchView(viewId) {
@@ -113,46 +142,120 @@
         }
     }
 
-    // --- 資料操作邏輯 ---
+    // --- 1. 新增初診資料 ---
     async function submitPatient() {
-        const name = document.getElementById('p-name').value;
-        const phone = document.getElementById('p-phone').value;
+        const name = document.getElementById('p-name').value.trim();
+        const phone = document.getElementById('p-phone').value.trim();
+        const id_card = document.getElementById('p-idcard').value.trim();
         const dob = document.getElementById('p-dob').value;
-        if(!name || !phone) return alert("姓名電話必填");
+        const branch = document.getElementById('p-branch').value;
         
-        const { error } = await db.from('patients').insert([{ name, phone, dob, consent_signed: true }]);
+        if(!name || !phone) return alert("姓名與手機號碼為必填！");
+        
+        document.getElementById('status').innerText = "處理中...";
+
+        const { error } = await db.from('patients').insert([{ 
+            name, phone, id_card, dob: dob || null, branch, consent_signed: true 
+        }]);
+
         if (error) {
-            document.getElementById('status').innerHTML = `<span style="color:red">失敗: ${error.message}</span>`;
+            document.getElementById('status').innerHTML = `<span style="color:red">失敗: 此電話可能已建檔過</span>`;
+            console.error(error);
         } else {
             document.getElementById('status').innerHTML = '<span style="color:green">✅ 初診資料已建立！</span>';
+            // 清空表單
+            document.querySelectorAll('input').forEach(i => i.value = '');
             setTimeout(() => switchView('view-home'), 2000);
         }
     }
 
+    // --- 2. 多條件搜尋病患 ---
     async function searchPatient() {
-        const phone = document.getElementById('t-search').value;
-        const { data, error } = await db.from('patients').select('id, name').eq('phone', phone).single();
-        if (data) {
-            curId = data.id;
-            document.getElementById('t-display-name').innerText = data.name;
+        const kw = document.getElementById('t-search').value.trim();
+        if(!kw) return alert("請輸入搜尋關鍵字");
+        document.getElementById('status').innerText = "搜尋中...";
+
+        // 利用 or 語法實現：姓名模糊比對、電話精準比對、身分證精準比對
+        const { data, error } = await db.from('patients')
+            .select('*')
+            .or(`name.ilike.%${kw}%,phone.eq.${kw},id_card.eq.${kw}`)
+            .limit(1);
+
+        if (error || !data || data.length === 0) {
+            document.getElementById('status').innerHTML = '<span style="color:red">找不到符合的病患資料</span>';
+            document.getElementById('t-info').style.display = 'none';
+            document.getElementById('history-section').style.display = 'none';
+            document.getElementById('soap-form').style.display = 'none';
+        } else {
+            const patient = data[0];
+            curPatientId = patient.id;
+            document.getElementById('status').innerText = '';
+            
+            // 顯示病患資訊
+            document.getElementById('t-display-name').innerText = `${patient.name} (${patient.branch || '未指定院所'})`;
+            document.getElementById('t-display-meta').innerText = `電話: ${patient.phone} | 身分證: ${patient.id_card || '未填'}`;
             document.getElementById('t-info').style.display = 'block';
             document.getElementById('soap-form').style.display = 'block';
-        } else {
-            alert("找不到該病患");
+
+            // 載入歷史病歷
+            loadHistory(patient.id);
         }
     }
 
+    // --- 3. 載入歷史病歷 ---
+    async function loadHistory(pid) {
+        const historyDiv = document.getElementById('history-list');
+        document.getElementById('history-section').style.display = 'block';
+        historyDiv.innerHTML = "載入中...";
+
+        const { data, error } = await db.from('daily_notes')
+            .select('*')
+            .eq('patient_id', pid)
+            .order('visit_date', { ascending: false });
+
+        if (data && data.length > 0) {
+            let html = '';
+            data.forEach(note => {
+                const date = new Date(note.visit_date).toLocaleString('zh-TW', { year:'numeric', month:'2-digit', day:'2-digit', hour:'2-digit', minute:'2-digit' });
+                html += `
+                    <div class="history-card">
+                        <div class="history-date">📅 ${date}</div>
+                        <div><b>S:</b> ${note.subjective || ''}</div>
+                        <div><b>O:</b> ${note.objective || ''}</div>
+                        <div><b>A:</b> ${note.assessment || ''}</div>
+                        <div><b>P:</b> ${note.plan || ''}</div>
+                    </div>
+                `;
+            });
+            historyDiv.innerHTML = html;
+        } else {
+            historyDiv.innerHTML = '<div style="color:#888;">此病患尚無歷史紀錄。</div>';
+        }
+    }
+
+    // --- 4. 儲存今日病歷 ---
     async function submitSoap() {
+        if(!curPatientId) return;
+        document.getElementById('status').innerText = "儲存中...";
+
         const { error } = await db.from('daily_notes').insert([{
-            patient_id: curId,
+            patient_id: curPatientId,
             subjective: document.getElementById('note-s').value,
             objective: document.getElementById('note-o').value,
             assessment: document.getElementById('note-a').value,
             plan: document.getElementById('note-p').value
         }]);
-        if (!error) {
-            alert("病歷已儲存！");
-            location.reload();
+
+        if (error) {
+            document.getElementById('status').innerHTML = `<span style="color:red">儲存失敗: ${error.message}</span>`;
+        } else {
+            document.getElementById('status').innerHTML = '<span style="color:green">✅ 病歷已成功歸檔！</span>';
+            // 清空填寫區塊並重新載入歷史紀錄
+            document.getElementById('note-s').value = '';
+            document.getElementById('note-o').value = '';
+            document.getElementById('note-a').value = '';
+            document.getElementById('note-p').value = '';
+            loadHistory(curPatientId);
         }
     }
 </script>
