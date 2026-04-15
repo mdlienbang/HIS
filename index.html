@@ -3,262 +3,771 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>連邦物理治療所 | HIS 智慧門戶</title>
+    <title>連邦物理治療所 | 旗艦病程管理系統</title>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <style>
-        :root { --glass-bg: rgba(255, 255, 255, 0.75); --accent: #00d2ff; --therapist-accent: #20c997; }
-        body { 
-            background: linear-gradient(135deg, #e0f7fa 0%, #ffffff 100%);
-            font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
-            display: flex; justify-content: center; align-items: flex-start; min-height: 100vh; margin: 0; padding: 20px;
-        }
-        .container {
-            background: var(--glass-bg); backdrop-filter: blur(20px);
-            border-radius: 24px; padding: 30px; box-shadow: 0 10px 40px rgba(0,0,0,0.08);
-            border: 1px solid rgba(255,255,255,0.4); width: 100%; max-width: 600px; margin-top: 5vh;
-        }
-        .view { display: none; animation: fadeIn 0.4s ease; }
+        :root { --primary: #0284c7; --mingde: #059669; --bg: #f8fafc; --text: #334155; --border: #e2e8f0; --section-bg: #f1f5f9; }
+        body { font-family: 'PingFang TC', 'Microsoft JhengHei', sans-serif; background: var(--bg); color: var(--text); margin: 0; padding: 20px; box-sizing: border-box; }
+        
+        .view { display: none; max-width: 1400px; margin: 0 auto; animation: fadeIn 0.4s ease; }
         .view.active { display: block; }
         @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
 
-        /* 入口導覽鈕 */
-        .nav-menu { display: flex; flex-direction: column; gap: 15px; }
-        .nav-btn {
-            padding: 20px; border-radius: 15px; border: none; cursor: pointer;
-            font-size: 1.1rem; font-weight: bold; transition: 0.3s; color: white;
-        }
-        .btn-patient { background: linear-gradient(90deg, #00d2ff, #3a7bd5); }
-        .btn-therapist { background: linear-gradient(90deg, #20c997, #17a2b8); }
-
-        /* 表單元素 */
-        h2 { text-align: center; color: #2c3e50; font-weight: 300; margin-bottom: 25px; border-bottom: 2px solid #eee; padding-bottom: 10px; }
-        .input-row { display: flex; gap: 10px; margin-bottom: 15px; }
-        .input-group { flex: 1; }
-        label { display: block; margin-bottom: 6px; font-size: 0.85rem; color: #666; font-weight: bold; }
-        input, select, textarea {
-            width: 100%; padding: 12px; border: 1px solid rgba(0,0,0,0.1);
-            border-radius: 10px; background: rgba(255,255,255,0.6); box-sizing: border-box; font-family: inherit;
-        }
-        input:focus, textarea:focus { outline: none; border-color: var(--accent); }
-        button.action-btn {
-            width: 100%; padding: 14px; background: #2c3e50; color: white;
-            border: none; border-radius: 10px; cursor: pointer; font-weight: bold; margin-top: 10px;
-        }
-        .back-link { display: block; text-align: center; margin-top: 20px; color: #666; text-decoration: none; font-size: 0.9rem; }
+        .card { background: white; border-radius: 12px; padding: 30px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05); margin-bottom: 20px; border: 1px solid var(--border); }
         
-        /* 歷史病歷區塊 */
-        .history-card { background: rgba(255,255,255,0.8); border-left: 4px solid var(--therapist-accent); padding: 15px; margin-bottom: 15px; border-radius: 8px; font-size: 0.9rem; }
-        .history-date { font-weight: bold; color: #333; margin-bottom: 8px; border-bottom: 1px dashed #ccc; padding-bottom: 5px; }
-        #status { text-align: center; margin-top: 15px; font-weight: bold; }
+        /* 兩格一列 */
+        .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+        @media (max-width: 768px) { .form-grid { grid-template-columns: 1fr; } }
+        .full-width { grid-column: 1 / -1; }
+        
+        .section-title { font-size: 1.15rem; color: var(--primary); border-bottom: 2px solid var(--border); padding-bottom: 8px; margin-top: 25px; margin-bottom: 15px; font-weight: bold; display: flex; align-items: center; gap: 8px; }
+        .section-title::before { content: ''; display: inline-block; width: 6px; height: 18px; background: var(--primary); border-radius: 4px; }
+        
+        label { display: block; font-weight: bold; margin-bottom: 6px; color: #475569; font-size: 0.95rem; }
+        input[type="text"], input[type="tel"], input[type="email"], input[type="date"], select, textarea { width: 100%; padding: 12px; border: 1px solid var(--border); border-radius: 8px; font-size: 1rem; box-sizing: border-box; background: var(--bg); transition: 0.2s; }
+        input:focus, select:focus, textarea:focus { outline: none; border-color: var(--primary); background: white; box-shadow: 0 0 0 3px rgba(2, 132, 199, 0.1); }
+        textarea { resize: vertical; min-height: 90px; }
+        
+        /* 禁忌症 */
+        .checkbox-group { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; background: white; padding: 20px; border-radius: 8px; border: 1px solid var(--border); }
+        @media (max-width: 768px) { .checkbox-group { grid-template-columns: 1fr; } }
+        .checkbox-label { font-weight: normal; display: flex; align-items: flex-start; gap: 8px; cursor: pointer; color: #334155; }
+        .checkbox-label input { margin-top: 4px; width: 18px; height: 18px; cursor: pointer; }
+
+        .btn { padding: 14px 24px; border: none; border-radius: 8px; cursor: pointer; font-weight: bold; font-size: 1.05rem; transition: 0.2s; text-align: center; }
+        .btn-primary { background: var(--primary); color: white; }
+        .btn-primary:hover { background: #0369a1; }
+        .btn-outline { background: white; border: 2px solid var(--border); color: #475569; }
+        .btn-outline:hover { background: var(--section-bg); }
+        .btn-danger { background: #ef4444; color: white; }
+        .btn-success { background: #10b981; color: white; }
+        
+        .step-indicator { display: flex; justify-content: center; gap: 40px; margin-bottom: 30px; font-weight: bold; color: #cbd5e1; }
+        .step-item { padding-bottom: 8px; font-size: 1.1rem; }
+        .step-item.active { color: var(--primary); border-bottom: 3px solid var(--primary); }
+        .patient-step { display: none; }
+        .patient-step.active { display: block; animation: fadeIn 0.4s; }
+
+        /* 治療師面板 */
+        .dashboard { display: grid; grid-template-columns: 360px 1fr; gap: 24px; align-items: start; min-height: 85vh; }
+        .side-panel { background: white; border-radius: 12px; padding: 25px; border: 1px solid var(--border); height: calc(100vh - 80px); overflow-y: auto; box-shadow: 0 4px 6px rgba(0,0,0,0.05); }
+        .main-panel { background: white; border-radius: 12px; padding: 25px; border: 1px solid var(--border); height: calc(100vh - 80px); overflow-y: auto; display: flex; flex-direction: column; box-shadow: 0 4px 6px rgba(0,0,0,0.05); }
+
+        #search-results { background: white; border: 1px solid var(--border); border-radius: 8px; max-height: 300px; overflow-y: auto; display: none; margin-top: 5px; box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1); position: absolute; width: 100%; z-index: 10; }
+        .search-item { padding: 15px; border-bottom: 1px solid #f1f5f9; cursor: pointer; }
+        .search-item:hover { background: #f0f9ff; }
+
+        .case-selector { display: flex; gap: 10px; margin-bottom: 20px; overflow-x: auto; padding-bottom: 10px; border-bottom: 2px solid var(--border); }
+        .case-tab { padding: 10px 20px; background: var(--section-bg); border-radius: 8px; cursor: pointer; white-space: nowrap; font-weight: bold; color: #64748b; }
+        .case-tab.active { background: var(--primary); color: white; }
+        .case-tab.new { background: #10b981; color: white; }
+
+        .tabs { display: flex; gap: 10px; margin-bottom: 20px; }
+        .tab { padding: 10px 20px; cursor: pointer; font-weight: bold; color: #94a3b8; border-bottom: 3px solid transparent; }
+        .tab.active { color: var(--primary); border-bottom-color: var(--primary); }
+        .tab-content { display: none; }
+        .tab-content.active { display: block; }
+
+        /* 畫布 */
+        .canvas-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
+        .canvas-box { border: 2px dashed #cbd5e1; border-radius: 8px; padding: 10px; text-align: center; background: #f8fafc; }
+        canvas { display: block; width: 100%; height: 300px; cursor: crosshair; background-size: contain; background-repeat: no-repeat; background-position: center; touch-action: none; }
+        
+        .zoom-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.9); z-index: 9999; justify-content: center; align-items: center; }
+        .zoom-overlay img { max-height: 90vh; max-width: 90vw; border: 4px solid white; border-radius: 8px; }
+
+        /* 空白歡迎頁樣式 */
+        .welcome-placeholder { display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100%; color: #94a3b8; text-align: center; animation: fadeIn 0.6s; }
+        .welcome-placeholder h2 { color: #475569; margin-top: 20px; margin-bottom: 10px; }
     </style>
 </head>
 <body>
 
-<div class="container">
-    <div id="view-home" class="view active">
-        <h2 style="border:none;">連邦物理治療所<br><small style="font-size: 0.6em; opacity: 0.6;">數位電子病歷系統</small></h2>
-        <div class="nav-menu">
-            <button class="nav-btn btn-patient" onclick="switchView('view-patient')">🏥 初診資料填報</button>
-            <button class="nav-btn btn-therapist" onclick="checkAuth()">👨‍⚕️ 治療師看診面板</button>
+<div id="view-home" class="view active" style="max-width: 600px; text-align: center; margin-top: 10vh;">
+    <div class="card" style="padding: 50px 30px;">
+        <h1 style="color: var(--primary); font-size: 2.5rem; margin-top: 0;">連邦物理治療所</h1>
+        <p style="color: #64748b; margin-bottom: 40px; font-size: 1.2rem;">智慧病程管理系統</p>
+        <div style="display: flex; flex-direction: column; gap: 15px;">
+            <button class="btn btn-primary" onclick="switchView('view-patient')">🏥 填寫初診資料 (客戶端)</button>
+            <button class="btn btn-outline" onclick="switchView('view-therapist')">👨‍⚕️ 進入診間面板 (治療師端)</button>
         </div>
     </div>
+</div>
 
-    <div id="view-patient" class="view">
-        <h2>初診基本資料</h2>
-        <div class="input-row">
-            <div class="input-group"><label>姓名 *</label><input type="text" id="p-name" placeholder="王小明"></div>
-            <div class="input-group"><label>手機號碼 *</label><input type="tel" id="p-phone" placeholder="09XX-XXX-XXX"></div>
+<div id="view-patient" class="view">
+    <button class="btn btn-outline" style="margin-bottom: 20px;" onclick="switchView('view-home')">← 取消並返回首頁</button>
+    
+    <div class="card">
+        <div class="step-indicator">
+            <div class="step-item active" id="ind-step1">步驟一：基本資料 (必填建檔)</div>
+            <div class="step-item" id="ind-step2">步驟二：評估資料 (選填)</div>
         </div>
-        <div class="input-row">
-            <div class="input-group"><label>身分證字號</label><input type="text" id="p-idcard" placeholder="A123456789"></div>
-            <div class="input-group"><label>出生年月日</label><input type="date" id="p-dob"></div>
+
+        <div id="step-1" class="patient-step active">
+            
+            <div class="section-title">行政作業 (櫃檯人員填寫)</div>
+            <div class="form-grid" style="background:#f0f9ff; padding:20px; border-radius:8px; border:1px solid #bae6fd;">
+                <div><label>0. 服務院別</label><select id="p-branch"><option>小巨蛋總院</option><option>明德分院</option></select></div>
+                <div><label>1. 是否為新客戶</label><select id="p-new"><option>是</option><option>否</option></select></div>
+                <div class="full-width"><label>2. 客戶編號 (若無請留空)</label><input type="text" id="p-no" placeholder="例如：MD1150400001" style="border-color:var(--primary); background:white;"></div>
+            </div>
+
+            <div class="section-title">個人基本資料</div>
+            <div class="form-grid">
+                <div><label>4. 姓名 *</label><input type="text" id="p-name" placeholder="請填寫真實姓名"></div>
+                <div><label>5. 性別</label><select id="p-gender"><option>男</option><option>女</option><option>其他</option></select></div>
+                <div><label>6. 出生年月日</label><input type="date" id="p-dob"></div>
+                <div><label>9. 身份證字號</label><input type="text" id="p-idcard"></div>
+            </div>
+
+            <div class="section-title">聯絡資訊與官方 LINE</div>
+            <div class="form-grid">
+                <div><label>10. 聯絡電話 *</label><input type="tel" id="p-phone" placeholder="09XX-XXX-XXX"></div>
+                <div><label>11. E-mail</label><input type="email" id="p-email"></div>
+                
+                <div class="full-width" style="text-align: center; background: #f8fafc; padding: 25px; border-radius: 12px; border: 2px dashed #bae6fd;">
+                    <label style="color: var(--primary); font-size: 1.15rem;">12. 官方 LINE 帳號 (請掃描加入建檔)</label>
+                    <p style="color: #64748b; margin-top: 5px; margin-bottom: 15px; font-size: 0.95rem;">💡 加入官方 LINE 不僅能幫助我們更順暢地為您建檔，您還能第一時間接收專屬的衛教資訊與預約提醒喔！</p>
+                    
+                    <img src="./M_168tshcw_GW.png" alt="LINE QR Code" style="width: 180px; height: 180px; margin: 0 auto; border-radius: 10px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);" onerror="this.onerror=null; this.alt='圖片載入失敗，請確認 Github 上的檔名與路徑是否正確為 M_168tshcw_GW.png'; this.style.border='1px solid red';">
+                    
+                    <select id="p-line" style="max-width: 350px; margin: 15px auto 0; font-weight: bold; color: var(--primary);">
+                        <option value="已加入">✅ 我已完成掃描並加入官方 LINE</option>
+                        <option value="無LINE">❌ 抱歉，我目前沒有使用 LINE</option>
+                    </select>
+                </div>
+                
+                <div><label>13. 居住縣市</label><input type="text" id="p-city" placeholder="例: 台北市"></div>
+                <div><label>14. 鄉鎮市區</label><input type="text" id="p-dist" placeholder="例: 中山區"></div>
+                <div class="full-width"><label>15. 詳細地址</label><input type="text" id="p-addr" placeholder="道路、巷弄、號樓"></div>
+            </div>
+
+            <div class="section-title">背景調查</div>
+            <div class="form-grid">
+                <div><label>7. 職業別</label><input type="text" id="p-job-cat" placeholder="例: 科技業、服務業"></div>
+                <div><label>8. 具體職業</label><input type="text" id="p-job-title" placeholder="例: 軟體工程師"></div>
+                <div><label>16. 您從何處得知連邦？</label>
+                    <select id="p-source">
+                        <option>原客戶</option><option>Google地圖/搜尋</option><option>FB</option><option>IG</option>
+                        <option>Threads</option><option>路過</option><option>親友推薦/員工推薦</option><option>其他</option>
+                    </select>
+                </div>
+                <div><label>17. 推薦人姓名/對象</label><input type="text" id="p-refer"></div>
+            </div>
+
+            <div class="section-title">18. 禁忌症與注意事項 (請勾選符合項目)</div>
+            <div class="checkbox-group">
+                <label class="checkbox-label"><input type="checkbox" name="p-contra" value="無" checked> 無</label>
+                <label class="checkbox-label"><input type="checkbox" name="p-contra" value="血友病"> 血友病</label>
+                <label class="checkbox-label"><input type="checkbox" name="p-contra" value="開放性傷口或未癒合之燒傷"> 開放性傷口或未癒合之燒傷</label>
+                <label class="checkbox-label"><input type="checkbox" name="p-contra" value="有皮膚疾病或發疹之局部"> 有皮膚疾病或發疹之局部</label>
+                <label class="checkbox-label"><input type="checkbox" name="p-contra" value="急性發炎組織 (蜂窩性組織炎、滑囊炎、肌炎等)"> 急性發炎組織 (蜂窩性組織炎、滑囊炎、肌炎等)</label>
+                <label class="checkbox-label"><input type="checkbox" name="p-contra" value="欲按摩區域有癌症或結核病"> 欲按摩區域有癌症或結核病</label>
+                <label class="checkbox-label"><input type="checkbox" name="p-contra" value="關節、骨骼或肌肉嚴重疼痛或腫脹"> 關節、骨骼或肌肉嚴重疼痛或腫脹</label>
+                <label class="checkbox-label"><input type="checkbox" name="p-contra" value="靜脈血栓炎(急性下肢疼痛)"> 靜脈血栓炎(急性下肢疼痛)</label>
+                <label class="checkbox-label"><input type="checkbox" name="p-contra" value="明顯靜脈曲張"> 明顯靜脈曲張</label>
+                <label class="checkbox-label"><input type="checkbox" name="p-contra" value="全身性水腫"> 全身性水腫</label>
+                <label class="checkbox-label"><input type="checkbox" name="p-contra" value="惡性糖尿病患者"> 惡性糖尿病患者</label>
+                <label class="checkbox-label"><input type="checkbox" name="p-contra" value="近期心臟病發作、高血壓而未治療"> 近期心臟病發作、高血壓而未治療</label>
+                <label class="checkbox-label" style="grid-column: 1 / -1; color: var(--primary); font-weight: bold;">
+                    <input type="checkbox" name="p-contra" value="自覺身體不適者，請主動告知並由專業人員評估"> 自覺身體不適者，請主動告知並由專業人員評估
+                </label>
+                <div style="grid-column: 1 / -1; display: flex; align-items: center; gap: 10px; margin-top: 10px;">
+                    <span style="white-space: nowrap; font-weight: bold; color: #475569;">其他補充:</span>
+                    <input type="text" id="p-contra-other" placeholder="可自行填寫其他症狀">
+                </div>
+            </div>
+            
+            <div style="text-align: center; margin-top: 40px; padding-top: 20px; border-top: 2px solid var(--border);">
+                <button class="btn btn-primary" style="width: 100%; max-width: 400px; font-size: 1.2rem; padding: 18px;" onclick="submitStep1()">💾 確認並完成建檔</button>
+            </div>
         </div>
-        <div class="input-group" style="margin-bottom: 15px;">
-            <label>看診院所</label>
-            <select id="p-branch">
-                <option value="明德店">明德店</option>
-                <option value="小巨蛋店">小巨蛋店</option>
-            </select>
+
+        <div id="step-2" class="patient-step">
+            <div style="background: #f0fdf4; border: 1px solid #bbf7d0; color: #166534; padding: 15px; border-radius: 8px; margin-bottom: 20px; text-align: center; font-weight: bold;">
+                ✅ 基本資料已成功建檔！您可以選擇繼續填寫以下進階資訊，或直接將平板交還給櫃檯。
+            </div>
+
+            <div class="section-title">運動與習慣</div>
+            <div class="form-grid">
+                <div><label>A. 運動類型</label>
+                    <select id="p-sport-type">
+                        <option value="">請選擇</option><option>無</option><option>重訓</option><option>健走</option><option>慢跑</option>
+                        <option>腳踏車</option><option>球類運動</option><option>鐵人三項</option><option>游泳</option><option>其他</option>
+                    </select>
+                </div>
+                <div><label>B. 運動頻率</label>
+                    <select id="p-sport-freq">
+                        <option value="">請選擇</option><option>偶爾運動或每週1次</option><option>每週2-4次</option>
+                        <option>每週5次以上</option><option>高強度運動訓練</option>
+                    </select>
+                </div>
+                <div class="full-width"><label>C. 本次服務項目為</label><input type="text" id="p-svc-item" placeholder="例如：徒手治療、運動指導"></div>
+            </div>
+
+            <div class="section-title">症狀與安排</div>
+            <div class="form-grid">
+                <div><label>D. 症狀分類</label>
+                    <select id="p-sym-cat">
+                        <option value="">請選擇</option><option>運動傷害</option><option>使用過度</option><option>姿勢不良</option>
+                        <option>骨科手術後症狀</option><option>創傷</option><option>其他</option>
+                    </select>
+                </div>
+                <div><label>E. 症狀持續時間</label>
+                    <select id="p-sym-dur">
+                        <option value="">請選擇</option><option>1天以內</option><option>2-7天</option><option>2-3週</option>
+                        <option>1-3月</option><option>4-6月</option><option>半年至一年</option><option>1-2年以上</option><option>10年以上</option>
+                    </select>
+                </div>
+                <div class="full-width"><label>F. 症狀部位 (治療部位)</label><input type="text" id="p-sym-part"></div>
+                
+                <div><label>G. 初次服務人員</label><input type="text" id="p-staff"></div>
+                <div><label>H. 是否指定人員</label><select id="p-desig"><option value="">請選擇</option><option>否</option><option>是</option></select></div>
+                <div class="full-width"><label>I. 指定原因</label><input type="text" id="p-desig-rsn"></div>
+            </div>
+            
+            <div style="display: flex; justify-content: space-between; margin-top: 40px; padding-top: 20px; border-top: 2px solid var(--border);">
+                <button class="btn btn-outline" onclick="location.reload()">不填寫，返回首頁</button>
+                <button class="btn btn-success" style="font-size: 1.1rem; padding: 15px 30px;" onclick="submitStep2()">💾 儲存進階資料</button>
+            </div>
         </div>
-        <button class="action-btn btn-patient" onclick="submitPatient()">送出資料建檔</button>
-        <a href="#" class="back-link" onclick="switchView('view-home')">取消並返回主選單</a>
     </div>
+</div>
 
-    <div id="view-therapist" class="view">
-        <h2>治療師看診紀錄</h2>
-        
-        <div style="display: flex; gap: 8px; margin-bottom: 15px;">
-            <input type="text" id="t-search" placeholder="輸入 姓名 / 電話 / 身分證 查詢">
-            <button style="width: 100px; border-radius: 10px; border: none; background: #20c997; color: white; font-weight:bold; cursor:pointer;" onclick="searchPatient()">調閱</button>
-        </div>
-        
-        <div id="t-info" style="display:none; background: #e8f5e9; padding: 15px; border-radius: 10px; margin-bottom: 20px;">
-            <div style="font-size: 1.2em; font-weight: bold; color: #20c997; margin-bottom: 5px;" id="t-display-name"></div>
-            <div style="font-size: 0.9em; color: #555;" id="t-display-meta"></div>
-        </div>
+<div id="view-therapist" class="view">
+    <button class="btn btn-outline" style="margin-bottom: 20px;" onclick="switchView('view-home')">← 返回首頁</button>
+    
+    <div class="dashboard">
+        <div class="side-panel">
+            <h2 style="margin-top:0;">🔍 病患檢索</h2>
+            <div style="position:relative;">
+                <input type="text" id="t-search" placeholder="輸入姓名、電話或病歷號..." oninput="liveSearch()" style="border:2px solid var(--primary);">
+                <div id="search-results"></div>
+            </div>
 
-        <div id="history-section" style="display:none; margin-bottom: 20px;">
-            <h3 style="font-size: 1rem; color: #666;">歷史病歷</h3>
-            <div id="history-list" style="max-height: 300px; overflow-y: auto; padding-right: 5px;"></div>
+            <div id="patient-detail" style="display:none; margin-top:30px; padding-top:20px; border-top:2px dashed var(--border);">
+                </div>
         </div>
 
-        <div id="soap-form" style="display:none; border-top: 2px solid #eee; padding-top: 15px;">
-            <h3 style="font-size: 1rem; color: #666;">新增今日紀錄 (S.O.A.P)</h3>
-            <textarea id="note-s" placeholder="S (主觀陳述 - 病患感受、疼痛指數)" style="margin-bottom: 10px; height:60px;"></textarea>
-            <textarea id="note-o" placeholder="O (客觀發現 - 理學檢查、評估)" style="margin-bottom: 10px; height:60px;"></textarea>
-            <textarea id="note-a" placeholder="A (評估與診斷)" style="margin-bottom: 10px; height:60px;"></textarea>
-            <textarea id="note-p" placeholder="P (治療計畫與衛教)" style="margin-bottom: 10px; height:60px;"></textarea>
-            <button class="action-btn btn-therapist" onclick="submitSoap()">歸檔入庫</button>
+        <div class="main-panel" style="position: relative;">
+            
+            <div id="welcome-placeholder" class="welcome-placeholder">
+                <div style="font-size: 5rem; margin-bottom: 20px;">🏥</div>
+                <h2>歡迎進入診間面板</h2>
+                <p>請從左側搜尋並選擇病患，<br>即可開始調閱病歷與新增紀錄。</p>
+            </div>
+
+            <div id="case-area" style="display:none; flex-direction:column; height:100%;">
+                <div class="case-selector" id="case-list"></div>
+
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 20px;">
+                    <h2 id="current-case-title" style="margin:0; color:var(--primary);">請選擇病程</h2>
+                    <button class="btn btn-danger" onclick="exportPDF()">📄 匯出 PDF</button>
+                </div>
+
+                <div id="pdf-wrapper" style="flex: 1; display:flex; flex-direction:column; gap:20px; overflow-y:auto; padding-right:10px;">
+                    
+                    <div class="card" style="margin-bottom:0; padding:20px;">
+                        <div class="tabs">
+                            <div class="tab active" onclick="switchTab('tab-eval')">📝 完整初診評估 (人體圖)</div>
+                            <div class="tab" onclick="switchTab('tab-daily')">📋 日常看診紀錄</div>
+                            <div class="tab" onclick="switchTab('tab-update')" style="margin-left:auto; color:var(--primary);">⚙️ 病患資料補登 (全欄位)</div>
+                        </div>
+
+                        <div id="tab-eval" class="tab-content active">
+                            <div style="display:grid; grid-template-columns: 1fr 1fr; gap:20px;">
+                                <div style="display:grid; gap:10px;">
+                                    <textarea id="note-s-eval" placeholder="【主要問題 S】"></textarea>
+                                    <textarea id="note-o-eval" placeholder="【物理治療評估 O】"></textarea>
+                                    <textarea id="note-a-eval" placeholder="【診斷 A】"></textarea>
+                                    <textarea id="note-p-eval" placeholder="【治療計畫 P】"></textarea>
+                                </div>
+                                
+                                <div style="background:#f8fafc; padding:15px; border-radius:8px; border:1px solid var(--border);">
+                                    <h4 style="text-align:center; margin-top:0; color:var(--primary);">🔴 痛點標記</h4>
+                                    <div class="canvas-grid">
+                                        <div class="canvas-box">正面<canvas id="c-front" style="background-image: url('./正面.png');"></canvas></div>
+                                        <div class="canvas-box">背面<canvas id="c-back" style="background-image: url('./背面.png');"></canvas></div>
+                                        <div class="canvas-box">左側面<canvas id="c-left" style="background-image: url('./左側面.png');"></canvas></div>
+                                        <div class="canvas-box">右側面<canvas id="c-right" style="background-image: url('./右側面.png');"></canvas></div>
+                                    </div>
+                                    <button class="btn btn-outline" style="width:100%; margin-top:10px;" onclick="clearCanvases()">清除重畫</button>
+                                </div>
+                            </div>
+                            <button class="btn btn-primary" style="width:100%; margin-top:15px;" onclick="saveSoap(true)">💾 歸檔初診評估</button>
+                        </div>
+
+                        <div id="tab-daily" class="tab-content">
+                            <div style="display:grid; gap:10px;">
+                                <textarea id="note-s-daily" placeholder="S (主觀陳述)" style="min-height:80px;"></textarea>
+                                <textarea id="note-o-daily" placeholder="O (客觀發現)" style="min-height:80px;"></textarea>
+                                <textarea id="note-a-daily" placeholder="A (評估與診斷)" style="min-height:80px;"></textarea>
+                                <textarea id="note-p-daily" placeholder="P (治療計畫)" style="min-height:80px;"></textarea>
+                                <button class="btn btn-primary" onclick="saveSoap(false)">💾 歸檔日常病歷</button>
+                            </div>
+                        </div>
+
+                        <div id="tab-update" class="tab-content">
+                            <div class="form-grid" style="background:#f0f9ff; padding:20px; border-radius:8px; border:1px solid #bae6fd;">
+                                
+                                <div class="full-width"><h3 style="margin:0; color:var(--primary); border-bottom:1px dashed #93c5fd; padding-bottom:10px;">基本資料 (0-19)</h3></div>
+                                
+                                <div><label>0. 院別</label><select id="edit-branch"><option>小巨蛋總院</option><option>明德分院</option></select></div>
+                                <div><label>1. 是否新客</label><select id="edit-new"><option>是</option><option>否</option></select></div>
+                                <div><label>2. 病歷編號</label><input type="text" id="edit-pno"></div>
+                                <div><label>4. 姓名</label><input type="text" id="edit-name"></div>
+                                
+                                <div><label>5. 性別</label><select id="edit-gender"><option>男</option><option>女</option><option>其他</option></select></div>
+                                <div><label>6. 生日</label><input type="date" id="edit-dob"></div>
+                                <div><label>9. 身分證</label><input type="text" id="edit-idcard"></div>
+                                <div><label>10. 電話</label><input type="tel" id="edit-phone"></div>
+                                
+                                <div><label>11. Email</label><input type="email" id="edit-email"></div>
+                                <div><label>12. Line ID</label><select id="edit-line"><option value="已加入">已加入</option><option value="無LINE">無LINE</option></select></div>
+                                
+                                <div><label>13. 縣市</label><input type="text" id="edit-city"></div>
+                                <div><label>14. 鄉鎮市區</label><input type="text" id="edit-dist"></div>
+                                <div class="full-width"><label>15. 詳細地址</label><input type="text" id="edit-addr"></div>
+                                
+                                <div><label>7. 職業別</label><input type="text" id="edit-job-cat"></div>
+                                <div><label>8. 具體職業</label><input type="text" id="edit-job-title"></div>
+                                
+                                <div><label>16. 得知管道</label>
+                                    <select id="edit-source">
+                                        <option>原客戶</option><option>Google地圖/搜尋</option><option>FB</option><option>IG</option>
+                                        <option>Threads</option><option>路過</option><option>親友推薦/員工推薦</option><option>其他</option>
+                                    </select>
+                                </div>
+                                <div><label>17. 推薦人</label><input type="text" id="edit-refer"></div>
+                                
+                                <div class="full-width">
+                                    <label>18. 禁忌症 (可複選)</label>
+                                    <div class="checkbox-group">
+                                        <label class="checkbox-label"><input type="checkbox" name="edit-contra" value="無"> 無</label>
+                                        <label class="checkbox-label"><input type="checkbox" name="edit-contra" value="血友病"> 血友病</label>
+                                        <label class="checkbox-label"><input type="checkbox" name="edit-contra" value="開放性傷口或未癒合之燒傷"> 開放性傷口或未癒合之燒傷</label>
+                                        <label class="checkbox-label"><input type="checkbox" name="edit-contra" value="有皮膚疾病或發疹之局部"> 有皮膚疾病或發疹之局部</label>
+                                        <label class="checkbox-label"><input type="checkbox" name="edit-contra" value="急性發炎組織 (蜂窩性組織炎、滑囊炎、肌炎等)"> 急性發炎組織 (蜂窩性組織炎等)</label>
+                                        <label class="checkbox-label"><input type="checkbox" name="edit-contra" value="欲按摩區域有癌症或結核病"> 欲按摩區域有癌症或結核病</label>
+                                        <label class="checkbox-label"><input type="checkbox" name="edit-contra" value="關節、骨骼或肌肉嚴重疼痛或腫脹"> 關節、骨骼或肌肉嚴重疼痛或腫脹</label>
+                                        <label class="checkbox-label"><input type="checkbox" name="edit-contra" value="靜脈血栓炎(急性下肢疼痛)"> 靜脈血栓炎(急性下肢疼痛)</label>
+                                        <label class="checkbox-label"><input type="checkbox" name="edit-contra" value="明顯靜脈曲張"> 明顯靜脈曲張</label>
+                                        <label class="checkbox-label"><input type="checkbox" name="edit-contra" value="全身性水腫"> 全身性水腫</label>
+                                        <label class="checkbox-label"><input type="checkbox" name="edit-contra" value="惡性糖尿病患者"> 惡性糖尿病患者</label>
+                                        <label class="checkbox-label"><input type="checkbox" name="edit-contra" value="近期心臟病發作、高血壓而未治療"> 近期心臟病發作、高血壓而未治療</label>
+                                        <label class="checkbox-label" style="grid-column: 1 / -1; color: var(--primary);">
+                                            <input type="checkbox" name="edit-contra" value="自覺身體不適者，請主動告知並由專業人員評估"> 自覺身體不適者，請主動告知並由專業人員評估
+                                        </label>
+                                        <div style="grid-column: 1 / -1; display: flex; align-items: center; gap: 10px; margin-top: 5px;">
+                                            <span style="white-space: nowrap; color: #475569; font-weight:bold;">其他:</span>
+                                            <input type="text" id="edit-contra-other" placeholder="自行填寫">
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="full-width"><h3 style="margin-top:20px; color:var(--primary); border-bottom:1px dashed #93c5fd; padding-bottom:10px;">進階評估與安排 (A-I)</h3></div>
+                                
+                                <div><label>A. 運動類型</label><input type="text" id="edit-sport-type"></div>
+                                <div><label>B. 運動頻率</label><input type="text" id="edit-sport-freq"></div>
+                                <div class="full-width"><label>C. 服務項目</label><input type="text" id="edit-svc-item"></div>
+                                
+                                <div><label>D. 症狀分類</label><input type="text" id="edit-sym-cat"></div>
+                                <div><label>E. 持續時間</label><input type="text" id="edit-sym-dur"></div>
+                                <div class="full-width"><label>F. 症狀部位</label><input type="text" id="edit-sym-part"></div>
+                                
+                                <div><label>G. 服務人員</label><input type="text" id="edit-staff"></div>
+                                <div><label>H. 是否指定</label><select id="edit-desig"><option value="否">否</option><option value="是">是</option></select></div>
+                                <div class="full-width"><label>I. 指定原因</label><input type="text" id="edit-desig-rsn"></div>
+
+                                <button class="btn btn-primary full-width" style="margin-top:20px;" onclick="updatePatientInfo()">💾 儲存所有資料變更</button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div id="history-list"></div>
+                </div>
+            </div>
         </div>
-        
-        <a href="#" class="back-link" onclick="location.reload()">登出並返回</a>
     </div>
+</div>
 
-    <div id="status"></div>
+<div class="zoom-overlay" id="zoom-box" onclick="this.style.display='none'">
+    <img id="zoom-img" src="">
 </div>
 
 <script>
-    // --- 核心設定 ---
     const SB_URL = 'https://kljytfzvrndvljeunvlr.supabase.co';
     const SB_KEY = 'sb_publishable_iXmBIxTh1mLsoQen6tJkww_0VC3YKyv';
-    const PASSWORD = '1234'; 
-    
     const db = supabase.createClient(SB_URL, SB_KEY);
-    let curPatientId = null;
+    
+    let curPatient = null;
+    let newCreatedPatientId = null; 
+    let curCase = null;
 
-    // --- 視圖切換邏輯 ---
-    function switchView(viewId) {
+    function getContra(prefix) {
+        let checked = Array.from(document.querySelectorAll(`input[name="${prefix}-contra"]:checked`)).map(cb => cb.value);
+        let other = document.getElementById(`${prefix}-contra-other`).value.trim();
+        if (other) checked.push(other);
+        return checked.join(', ');
+    }
+
+    function setContra(val, prefix) {
+        document.querySelectorAll(`input[name="${prefix}-contra"]`).forEach(cb => cb.checked = false);
+        document.getElementById(`${prefix}-contra-other`).value = '';
+        if(!val) return;
+        let parts = val.split(',').map(s => s.trim());
+        let otherParts = [];
+        parts.forEach(p => {
+            let cb = document.querySelector(`input[name="${prefix}-contra"][value="${p}"]`);
+            if(cb) cb.checked = true;
+            else if(p && p !== '無') otherParts.push(p);
+        });
+        if(otherParts.length > 0) document.getElementById(`${prefix}-contra-other`).value = otherParts.join(', ');
+    }
+
+    const canvases = ['c-front', 'c-back', 'c-left', 'c-right'].map(id => document.getElementById(id));
+    const ctxs = canvases.map(c => c ? c.getContext('2d') : null);
+    let isDrawing = false;
+
+    canvases.forEach((canvas, idx) => {
+        if(!canvas) return;
+        const ctx = ctxs[idx];
+        canvas.width = 200; canvas.height = 300; 
+        ctx.strokeStyle = "red"; ctx.lineWidth = 4; ctx.lineCap = "round";
+
+        const startDraw = (e) => { isDrawing = true; draw(e, canvas, ctx); };
+        const endDraw = () => { isDrawing = false; ctx.beginPath(); };
+        const draw = (e, cvs, context) => {
+            if(!isDrawing) return;
+            const rect = cvs.getBoundingClientRect();
+            const scaleX = cvs.width / rect.width;
+            const scaleY = cvs.height / rect.height;
+            const x = ((e.clientX || e.touches[0].clientX) - rect.left) * scaleX;
+            const y = ((e.clientY || e.touches[0].clientY) - rect.top) * scaleY;
+            context.lineTo(x, y); context.stroke(); context.beginPath(); context.moveTo(x, y);
+        };
+
+        canvas.addEventListener('mousedown', startDraw);
+        canvas.addEventListener('mousemove', (e) => draw(e, canvas, ctx));
+        canvas.addEventListener('mouseup', endDraw);
+        canvas.addEventListener('mouseleave', endDraw);
+        canvas.addEventListener('touchstart', (e) => { e.preventDefault(); startDraw(e); }, {passive: false});
+        canvas.addEventListener('touchmove', (e) => { e.preventDefault(); draw(e, canvas, ctx); }, {passive: false});
+        canvas.addEventListener('touchend', endDraw);
+    });
+
+    function clearCanvases() { canvases.forEach((c, i) => { if(c) ctxs[i].clearRect(0, 0, c.width, c.height); }); }
+
+    function switchView(id) {
         document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
-        document.getElementById(viewId).classList.add('active');
-        document.getElementById('status').innerText = '';
+        document.getElementById(id).classList.add('active');
+        window.scrollTo(0, 0);
+    }
+    
+    function nextStep() {
+        document.getElementById('step-1').classList.remove('active');
+        document.getElementById('ind-step1').classList.remove('active');
+        document.getElementById('step-2').classList.add('active');
+        document.getElementById('ind-step2').classList.add('active');
+        window.scrollTo(0, 0);
     }
 
-    function checkAuth() {
-        const pass = prompt("請輸入治療師授權密碼：");
-        if (pass === PASSWORD) {
-            switchView('view-therapist');
-        } else if (pass !== null) {
-            alert("密碼錯誤，拒絕存取");
-        }
+    function switchTab(tabId) {
+        document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+        document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+        event.target.classList.add('active');
+        document.getElementById(tabId).classList.add('active');
     }
 
-    // --- 1. 新增初診資料 ---
-    async function submitPatient() {
+    async function submitStep1() {
         const name = document.getElementById('p-name').value.trim();
         const phone = document.getElementById('p-phone').value.trim();
-        const id_card = document.getElementById('p-idcard').value.trim();
-        const dob = document.getElementById('p-dob').value;
-        const branch = document.getElementById('p-branch').value;
-        
-        if(!name || !phone) return alert("姓名與手機號碼為必填！");
-        
-        document.getElementById('status').innerText = "處理中...";
+        if(!name || !phone) return alert("⚠️ 姓名與聯絡電話為必填欄位！");
 
-        const { error } = await db.from('patients').insert([{ 
-            name, phone, id_card, dob: dob || null, branch, consent_signed: true 
-        }]);
+        const payload = {
+            branch: document.getElementById('p-branch').value, is_new_customer: document.getElementById('p-new').value,
+            patient_no: document.getElementById('p-no').value || null, name: name, gender: document.getElementById('p-gender').value,
+            dob: document.getElementById('p-dob').value || null, job_category: document.getElementById('p-job-cat').value,
+            job_title: document.getElementById('p-job-title').value, id_card: document.getElementById('p-idcard').value,
+            phone: phone, email: document.getElementById('p-email').value, line_id: document.getElementById('p-line').value,
+            address_city: document.getElementById('p-city').value, address_district: document.getElementById('p-dist').value,
+            address_detail: document.getElementById('p-addr').value, referral_source: document.getElementById('p-source').value,
+            referrer_info: document.getElementById('p-refer').value, 
+            contraindications: getContra('p'), 
+            annual_income: "", sports_type: "", sports_freq: "", service_item: "", symptom_category: "", 
+            symptom_duration: "", symptom_parts: "", initial_staff: "", is_designated: "", designated_reason: ""
+        };
 
-        if (error) {
-            document.getElementById('status').innerHTML = `<span style="color:red">失敗: 此電話可能已建檔過</span>`;
-            console.error(error);
+        const { data, error } = await db.from('patients').insert([payload]).select().single();
+        if(error) {
+            alert("建檔錯誤: " + error.message);
         } else {
-            document.getElementById('status').innerHTML = '<span style="color:green">✅ 初診資料已建立！</span>';
-            // 清空表單
-            document.querySelectorAll('input').forEach(i => i.value = '');
-            setTimeout(() => switchView('view-home'), 2000);
+            newCreatedPatientId = data.id; 
+            nextStep();
         }
     }
 
-    // --- 2. 多條件搜尋病患 ---
-    async function searchPatient() {
+    async function submitStep2() {
+        if(!newCreatedPatientId) return alert("系統找不到建檔紀錄，請重新操作。");
+
+        const payload = {
+            sports_type: document.getElementById('p-sport-type').value,
+            sports_freq: document.getElementById('p-sport-freq').value,
+            service_item: document.getElementById('p-svc-item').value,
+            symptom_category: document.getElementById('p-sym-cat').value,
+            symptom_duration: document.getElementById('p-sym-dur').value,
+            symptom_parts: document.getElementById('p-sym-part').value,
+            initial_staff: document.getElementById('p-staff').value,
+            is_designated: document.getElementById('p-desig').value,
+            designated_reason: document.getElementById('p-desig-rsn').value
+        };
+
+        const { error } = await db.from('patients').update(payload).eq('id', newCreatedPatientId);
+        if(error) alert("更新錯誤: " + error.message);
+        else { alert("✅ 所有資料皆已儲存完畢！"); location.reload(); }
+    }
+
+    async function liveSearch() {
         const kw = document.getElementById('t-search').value.trim();
-        if(!kw) return alert("請輸入搜尋關鍵字");
-        document.getElementById('status').innerText = "搜尋中...";
+        const resDiv = document.getElementById('search-results');
+        if(kw.length < 1) { resDiv.style.display = 'none'; return; }
 
-        // 利用 or 語法實現：姓名模糊比對、電話精準比對、身分證精準比對
-        const { data, error } = await db.from('patients')
-            .select('*')
-            .or(`name.ilike.%${kw}%,phone.eq.${kw},id_card.eq.${kw}`)
-            .limit(1);
-
-        if (error || !data || data.length === 0) {
-            document.getElementById('status').innerHTML = '<span style="color:red">找不到符合的病患資料</span>';
-            document.getElementById('t-info').style.display = 'none';
-            document.getElementById('history-section').style.display = 'none';
-            document.getElementById('soap-form').style.display = 'none';
-        } else {
-            const patient = data[0];
-            curPatientId = patient.id;
-            document.getElementById('status').innerText = '';
+        const { data } = await db.from('patients').select('id, name, phone, patient_no')
+            .or(`name.ilike.%${kw}%,phone.ilike.%${kw}%,patient_no.ilike.%${kw}%`).limit(8);
             
-            // 顯示病患資訊
-            document.getElementById('t-display-name').innerText = `${patient.name} (${patient.branch || '未指定院所'})`;
-            document.getElementById('t-display-meta').innerText = `電話: ${patient.phone} | 身分證: ${patient.id_card || '未填'}`;
-            document.getElementById('t-info').style.display = 'block';
-            document.getElementById('soap-form').style.display = 'block';
-
-            // 載入歷史病歷
-            loadHistory(patient.id);
+        if(data && data.length > 0) {
+            resDiv.innerHTML = data.map(p => `
+                <div class="search-item" onclick="loadPatient('${p.id}')">
+                    <b>${p.name}</b> <span style="color:var(--primary);">${p.patient_no || '無病歷號'}</span><br>
+                    <small>📞 ${p.phone}</small>
+                </div>`).join('');
+            resDiv.style.display = 'block';
+        } else {
+            resDiv.innerHTML = '<div style="padding:15px; text-align:center;">找不到相符資料</div>';
+            resDiv.style.display = 'block';
         }
     }
 
-    // --- 3. 載入歷史病歷 ---
-    async function loadHistory(pid) {
-        const historyDiv = document.getElementById('history-list');
-        document.getElementById('history-section').style.display = 'block';
-        historyDiv.innerHTML = "載入中...";
+    async function loadPatient(id) {
+        document.getElementById('search-results').style.display = 'none';
+        const { data } = await db.from('patients').select('*').eq('id', id).single();
+        curPatient = data;
+        
+        // 判斷院所，並給予對應顏色標籤
+        let branchBadge = data.branch || '小巨蛋總院';
+        let badgeColor = 'var(--primary)'; // 預設深藍色
+        if ((data.patient_no && data.patient_no.toUpperCase().startsWith('M')) || branchBadge === '明德分院') {
+            branchBadge = '明德分院';
+            badgeColor = 'var(--mingde)'; // 翡翠綠色
+        }
 
-        const { data, error } = await db.from('daily_notes')
-            .select('*')
-            .eq('patient_id', pid)
-            .order('visit_date', { ascending: false });
+        document.getElementById('patient-detail').innerHTML = `
+            <h1 style="color:var(--primary); margin-bottom:5px;">
+                ${data.name} <span style="font-size:1.2rem; color:#64748b;">(${data.gender})</span>
+                <span style="background: ${badgeColor}; color: white; padding: 4px 10px; border-radius: 20px; font-size: 0.9rem; margin-left: 10px; vertical-align: middle;">🏥 ${branchBadge}</span>
+            </h1>
+            <div style="background:#f8fafc; padding:15px; border-radius:8px; margin-bottom:15px;">
+                <p style="margin:5px 0;"><b>病歷號：</b> ${data.patient_no || '無'}</p>
+                <p style="margin:5px 0;"><b>電話：</b> ${data.phone}</p>
+                <p style="margin:5px 0;"><b>生日：</b> ${data.dob || '未填'}</p>
+            </div>
+            <div style="border-left: 4px solid ${badgeColor}; padding-left: 10px; margin-bottom: 15px;">
+                <p style="margin:5px 0;"><b>職業：</b> ${data.job_title || '未填'} (${data.job_category || ''})</p>
+                <p style="margin:5px 0;"><b>活動：</b> ${data.sports_type || '無'} (${data.sports_freq || ''})</p>
+                <p style="margin:5px 0;"><b>項目：</b> ${data.service_item || '未填'}</p>
+            </div>
+            <div style="background:#fef2f2; padding:10px; border-radius:8px; border: 1px solid #fecaca;">
+                <b style="color:#dc2626;">⚠️ 禁忌症 / 注意：</b>
+                <p style="margin:5px 0 0 0; color:#991b1b;">${data.contraindications || '無'}</p>
+            </div>
+        `;
+        
+        document.getElementById('edit-branch').value = data.branch || '小巨蛋總院';
+        document.getElementById('edit-new').value = data.is_new_customer || '是';
+        document.getElementById('edit-pno').value = data.patient_no || '';
+        document.getElementById('edit-name').value = data.name || '';
+        document.getElementById('edit-gender').value = data.gender || '男';
+        document.getElementById('edit-dob').value = data.dob || '';
+        document.getElementById('edit-idcard').value = data.id_card || '';
+        document.getElementById('edit-phone').value = data.phone || '';
+        document.getElementById('edit-email').value = data.email || '';
+        document.getElementById('edit-line').value = data.line_id || '無LINE';
+        document.getElementById('edit-city').value = data.address_city || '';
+        document.getElementById('edit-dist').value = data.address_district || '';
+        document.getElementById('edit-addr').value = data.address_detail || '';
+        document.getElementById('edit-job-cat').value = data.job_category || '';
+        document.getElementById('edit-job-title').value = data.job_title || '';
+        document.getElementById('edit-source').value = data.referral_source || '其他';
+        document.getElementById('edit-refer').value = data.referrer_info || '';
+        
+        setContra(data.contraindications, 'edit');
 
-        if (data && data.length > 0) {
-            let html = '';
-            data.forEach(note => {
-                const date = new Date(note.visit_date).toLocaleString('zh-TW', { year:'numeric', month:'2-digit', day:'2-digit', hour:'2-digit', minute:'2-digit' });
-                html += `
-                    <div class="history-card">
-                        <div class="history-date">📅 ${date}</div>
-                        <div><b>S:</b> ${note.subjective || ''}</div>
-                        <div><b>O:</b> ${note.objective || ''}</div>
-                        <div><b>A:</b> ${note.assessment || ''}</div>
-                        <div><b>P:</b> ${note.plan || ''}</div>
-                    </div>
-                `;
+        document.getElementById('edit-sport-type').value = data.sports_type || '';
+        document.getElementById('edit-sport-freq').value = data.sports_freq || '';
+        document.getElementById('edit-svc-item').value = data.service_item || '';
+        document.getElementById('edit-sym-cat').value = data.symptom_category || '';
+        document.getElementById('edit-sym-dur').value = data.symptom_duration || '';
+        document.getElementById('edit-sym-part').value = data.symptom_parts || '';
+        document.getElementById('edit-staff').value = data.initial_staff || '';
+        document.getElementById('edit-desig').value = data.is_designated || '否';
+        document.getElementById('edit-desig-rsn').value = data.designated_reason || '';
+
+        // 隱藏歡迎空白頁，顯示病程與病歷
+        document.getElementById('welcome-placeholder').style.display = 'none';
+        document.getElementById('patient-detail').style.display = 'block';
+        document.getElementById('case-area').style.display = 'flex';
+        loadCases(id);
+    }
+
+    async function updatePatientInfo() {
+        const payload = {
+            branch: document.getElementById('edit-branch').value, is_new_customer: document.getElementById('edit-new').value,
+            patient_no: document.getElementById('edit-pno').value || null, name: document.getElementById('edit-name').value,
+            gender: document.getElementById('edit-gender').value, dob: document.getElementById('edit-dob').value || null,
+            id_card: document.getElementById('edit-idcard').value, phone: document.getElementById('edit-phone').value,
+            email: document.getElementById('edit-email').value, line_id: document.getElementById('edit-line').value,
+            address_city: document.getElementById('edit-city').value, address_district: document.getElementById('edit-dist').value,
+            address_detail: document.getElementById('edit-addr').value, job_category: document.getElementById('edit-job-cat').value,
+            job_title: document.getElementById('edit-job-title').value, referral_source: document.getElementById('edit-source').value,
+            referrer_info: document.getElementById('edit-refer').value, contraindications: getContra('edit'),
+            sports_type: document.getElementById('edit-sport-type').value, sports_freq: document.getElementById('edit-sport-freq').value,
+            service_item: document.getElementById('edit-svc-item').value, symptom_category: document.getElementById('edit-sym-cat').value,
+            symptom_duration: document.getElementById('edit-sym-dur').value, symptom_parts: document.getElementById('edit-sym-part').value,
+            initial_staff: document.getElementById('edit-staff').value, is_designated: document.getElementById('edit-desig').value,
+            designated_reason: document.getElementById('edit-desig-rsn').value
+        };
+        const { error } = await db.from('patients').update(payload).eq('id', curPatient.id);
+        if(error) alert("更新失敗：" + error.message);
+        else { alert("✅ 病患資料更新成功！"); loadPatient(curPatient.id); }
+    }
+
+    async function loadCases(pid) {
+        const { data } = await db.from('cases').select('*').eq('patient_id', pid).order('created_at', {ascending: false});
+        let html = data.map(c => {
+            const dateStr = new Date(c.created_at).toLocaleDateString('zh-TW');
+            return `<div class="case-tab ${curCase?.id === c.id ? 'active' : ''}" onclick="selectCase('${c.id}', '${c.case_name}', '${dateStr}')">📁 ${c.case_name} <br><small style="font-weight:normal;">${dateStr}</small></div>`;
+        }).join('');
+        html += `<div class="case-tab new" style="display:flex; align-items:center;" onclick="createCase()">+ 新增病程</div>`;
+        document.getElementById('case-list').innerHTML = html;
+
+        if(data.length > 0 && !curCase) selectCase(data[0].id, data[0].case_name, new Date(data[0].created_at).toLocaleDateString('zh-TW'));
+        else if(data.length === 0) {
+            curCase = null;
+            document.getElementById('current-case-title').innerText = "請先新增病程";
+            document.getElementById('history-list').innerHTML = "";
+        }
+    }
+
+    async function createCase() {
+        const name = prompt("請輸入新病程名稱 (例如：右肩夾擠症候群)");
+        if(!name) return;
+        const { data, error } = await db.from('cases').insert([{ patient_id: curPatient.id, case_name: name }]).select().single();
+        if(!error) selectCase(data.id, data.case_name, new Date(data.created_at).toLocaleDateString('zh-TW'));
+    }
+
+    function selectCase(id, name, dateStr) {
+        curCase = { id, name };
+        document.getElementById('current-case-title').innerHTML = `病程：${name} <span style="font-size:0.9rem; color:#64748b; font-weight:normal;">(建檔日: ${dateStr})</span>`;
+        loadCases(curPatient.id);
+        loadHistory(id);
+        clearCanvases();
+    }
+
+    async function saveSoap(isEval) {
+        if(!curCase) return alert("請先選擇或建立一個病程分類！");
+
+        let mapData = null;
+        if(isEval) {
+            mapData = JSON.stringify({
+                front: canvases[0].toDataURL(), back: canvases[1].toDataURL(),
+                left: canvases[2].toDataURL(), right: canvases[3].toDataURL()
             });
-            historyDiv.innerHTML = html;
-        } else {
-            historyDiv.innerHTML = '<div style="color:#888;">此病患尚無歷史紀錄。</div>';
+        }
+
+        const payload = {
+            patient_id: curPatient.id, case_id: curCase.id, is_initial_eval: isEval,
+            subjective: isEval ? document.getElementById('note-s-eval').value : document.getElementById('note-s-daily').value,
+            objective: isEval ? document.getElementById('note-o-eval').value : document.getElementById('note-o-daily').value,
+            assessment: isEval ? document.getElementById('note-a-eval').value : document.getElementById('note-a-daily').value,
+            plan: isEval ? document.getElementById('note-p-eval').value : document.getElementById('note-p-daily').value,
+            body_map_data: mapData
+        };
+
+        const { error } = await db.from('daily_notes').insert([payload]);
+        if(error) alert("儲存失敗: " + error.message);
+        else { 
+            alert("✅ 病歷儲存成功！"); 
+            document.querySelectorAll('#tab-eval textarea, #tab-daily textarea').forEach(t => t.value=''); 
+            clearCanvases(); loadHistory(curCase.id); 
         }
     }
 
-    // --- 4. 儲存今日病歷 ---
-    async function submitSoap() {
-        if(!curPatientId) return;
-        document.getElementById('status').innerText = "儲存中...";
+    async function loadHistory(caseId) {
+        const { data } = await db.from('daily_notes').select('*').eq('case_id', caseId).order('visit_date', {ascending:false});
+        const list = document.getElementById('history-list');
+        
+        if(!data || data.length === 0) { list.innerHTML = '<p style="text-align:center; color:#94a3b8;">此病程尚無紀錄</p>'; return; }
 
-        const { error } = await db.from('daily_notes').insert([{
-            patient_id: curPatientId,
-            subjective: document.getElementById('note-s').value,
-            objective: document.getElementById('note-o').value,
-            assessment: document.getElementById('note-a').value,
-            plan: document.getElementById('note-p').value
-        }]);
+        list.innerHTML = data.map(n => {
+            let imgHtml = '';
+            if(n.body_map_data) {
+                try {
+                    const maps = JSON.parse(n.body_map_data);
+                    imgHtml = `
+                        <div style="display:flex; gap:10px; margin-top:10px; overflow-x:auto;">
+                            <img src="${maps.front}" style="height:120px; border:1px solid #ccc; cursor:zoom-in; background:white;" onclick="zoomImg(this.src)">
+                            <img src="${maps.back}" style="height:120px; border:1px solid #ccc; cursor:zoom-in; background:white;" onclick="zoomImg(this.src)">
+                            <img src="${maps.left}" style="height:120px; border:1px solid #ccc; cursor:zoom-in; background:white;" onclick="zoomImg(this.src)">
+                            <img src="${maps.right}" style="height:120px; border:1px solid #ccc; cursor:zoom-in; background:white;" onclick="zoomImg(this.src)">
+                        </div>`;
+                } catch(e) {}
+            }
 
-        if (error) {
-            document.getElementById('status').innerHTML = `<span style="color:red">儲存失敗: ${error.message}</span>`;
-        } else {
-            document.getElementById('status').innerHTML = '<span style="color:green">✅ 病歷已成功歸檔！</span>';
-            // 清空填寫區塊並重新載入歷史紀錄
-            document.getElementById('note-s').value = '';
-            document.getElementById('note-o').value = '';
-            document.getElementById('note-a').value = '';
-            document.getElementById('note-p').value = '';
-            loadHistory(curPatientId);
-        }
+            return `
+            <div class="card" style="border-left: 5px solid ${n.is_initial_eval ? 'var(--primary)' : '#94a3b8'};">
+                <div style="font-weight:bold; color:#0f172a; margin-bottom:10px;">
+                    📅 ${new Date(n.visit_date).toLocaleString()} ${n.is_initial_eval ? '<span style="color:var(--primary);">⭐ 初診評估</span>' : '📝 日常紀錄'}
+                </div>
+                <div><b>S:</b> ${n.subjective || ''}</div>
+                <div><b>O:</b> ${n.objective || ''}</div>
+                <div><b>A:</b> ${n.assessment || ''}</div>
+                <div><b>P:</b> ${n.plan || ''}</div>
+                ${imgHtml}
+            </div>`;
+        }).join('');
+    }
+
+    function zoomImg(src) {
+        document.getElementById('zoom-img').src = src;
+        document.getElementById('zoom-box').style.display = 'flex';
+    }
+
+    async function exportPDF() {
+        if(!curPatient || !curCase) return alert("請先載入病患與病程");
+        
+        const tabs = document.querySelector('.tabs');
+        const activeTab = document.querySelector('.tab-content.active');
+        tabs.style.display = 'none';
+        activeTab.style.display = 'none';
+
+        const element = document.getElementById('pdf-wrapper');
+        const canvas = await html2canvas(element, { scale: 2 });
+        const imgData = canvas.toDataURL('image/png');
+        
+        const { jsPDF } = window.jspdf;
+        const pdf = new jsPDF('p', 'mm', 'a4');
+        const pdfWidth = pdf.internal.pageSize.getWidth();
+        const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
+        
+        pdf.text(`連邦物理治療所 - 醫療紀錄 (${curPatient.name} / ${curCase.name})`, 10, 10);
+        pdf.addImage(imgData, 'PNG', 0, 20, pdfWidth, pdfHeight);
+        pdf.save(`連邦病歷_${curPatient.name}_${curCase.name}.pdf`);
+
+        tabs.style.display = 'flex';
+        activeTab.style.display = 'block';
     }
 </script>
-
 </body>
 </html>
