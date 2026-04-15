@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>連邦物理治療所 | HIS 智慧門戶</title>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style>
+        :root { --glass-bg: rgba(255, 255, 255, 0.75); --accent: #00d2ff; --therapist-accent: #20c997; }
+        body { 
+            background: linear-gradient(135deg, #e0f7fa 0%, #ffffff 100%);
+            font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+            display: flex; justify-content: center; align-items: center; min-height: 100vh; margin: 0; padding: 15px;
+        }
+        .container {
+            background: var(--glass-bg); backdrop-filter: blur(20px);
+            border-radius: 24px; padding: 30px; box-shadow: 0 10px 40px rgba(0,0,0,0.08);
+            border: 1px solid rgba(255,255,255,0.4); width: 100%; max-width: 500px; transition: 0.5s;
+        }
+        .view { display: none; animation: fadeIn 0.4s ease; }
+        .view.active { display: block; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+        /* 入口導覽鈕 */
+        .nav-menu { display: flex; flex-direction: column; gap: 15px; }
+        .nav-btn {
+            padding: 20px; border-radius: 15px; border: none; cursor: pointer;
+            font-size: 1.1rem; font-weight: bold; transition: 0.3s; color: white;
+        }
+        .btn-patient { background: linear-gradient(90deg, #00d2ff, #3a7bd5); }
+        .btn-therapist { background: linear-gradient(90deg, #20c997, #17a2b8); }
+
+        /* 表單元素 */
+        h2 { text-align: center; color: #2c3e50; font-weight: 300; margin-bottom: 25px; }
+        .input-group { margin-bottom: 18px; }
+        label { display: block; margin-bottom: 6px; font-size: 0.85rem; color: #666; }
+        input, textarea {
+            width: 100%; padding: 12px; border: 1px solid rgba(0,0,0,0.1);
+            border-radius: 10px; background: rgba(255,255,255,0.6); box-sizing: border-box;
+        }
+        button.action-btn {
+            width: 100%; padding: 14px; background: #2c3e50; color: white;
+            border: none; border-radius: 10px; cursor: pointer; font-weight: bold; margin-top: 10px;
+        }
+        .back-link { display: block; text-align: center; margin-top: 20px; color: #666; text-decoration: none; font-size: 0.9rem; }
+        #status { text-align: center; margin-top: 15px; font-weight: bold; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <div id="view-home" class="view active">
+        <h2>連邦物理治療所<br><small style="font-size: 0.6em; opacity: 0.6;">數位電子病歷系統</small></h2>
+        <div class="nav-menu">
+            <button class="nav-btn btn-patient" onclick="switchView('view-patient')">🏥 我是客戶 (初診填報)</button>
+            <button class="nav-btn btn-therapist" onclick="checkAuth()">👨‍⚕️ 我是治療師 (看診面板)</button>
+        </div>
+    </div>
+
+    <div id="view-patient" class="view">
+        <h2>初診基本資料</h2>
+        <div class="input-group"><label>姓名</label><input type="text" id="p-name"></div>
+        <div class="input-group"><label>電話</label><input type="tel" id="p-phone"></div>
+        <div class="input-group"><label>生日</label><input type="date" id="p-dob"></div>
+        <button class="action-btn btn-patient" onclick="submitPatient()">提交資料</button>
+        <a href="#" class="back-link" onclick="switchView('view-home')">返回主選單</a>
+    </div>
+
+    <div id="view-therapist" class="view">
+        <h2>治療師看診紀錄</h2>
+        <div style="display: flex; gap: 8px; margin-bottom: 15px;">
+            <input type="tel" id="t-search" placeholder="輸入電話調閱">
+            <button style="width: 100px; border-radius: 10px; border: none; background: #333; color: white;" onclick="searchPatient()">調閱</button>
+        </div>
+        <div id="t-info" style="display:none; background: #e8f5e9; padding: 10px; border-radius: 10px; margin-bottom: 15px;">
+            目前看診：<b id="t-display-name"></b>
+        </div>
+        <div id="soap-form" style="display:none;">
+            <textarea id="note-s" placeholder="S (主觀陳述)" style="margin-bottom: 10px;"></textarea>
+            <textarea id="note-o" placeholder="O (客觀發現)" style="margin-bottom: 10px;"></textarea>
+            <textarea id="note-a" placeholder="A (評估與診斷)" style="margin-bottom: 10px;"></textarea>
+            <textarea id="note-p" placeholder="P (治療計畫)" style="margin-bottom: 10px;"></textarea>
+            <button class="action-btn btn-therapist" onclick="submitSoap()">儲存病歷</button>
+        </div>
+        <a href="#" class="back-link" onclick="location.reload()">登出並返回</a>
+    </div>
+
+    <div id="status"></div>
+</div>
+
+<script>
+    // --- 核心設定 ---
+    const SB_URL = 'https://kljytfzvrndvljeunvlr.supabase.co';
+    const SB_KEY = 'sb_publishable_iXmBIxTh1mLsoQen6tJkww_0VC3YKyv';
+    const PASSWORD = '1234'; // ⚠️ 你可以在這裡修改治療師進入密碼
+    
+    const db = supabase.createClient(SB_URL, SB_KEY);
+    let curId = null;
+
+    // --- 視圖切換邏輯 ---
+    function switchView(viewId) {
+        document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+        document.getElementById(viewId).classList.add('active');
+        document.getElementById('status').innerText = '';
+    }
+
+    function checkAuth() {
+        const pass = prompt("請輸入治療師授權密碼：");
+        if (pass === PASSWORD) {
+            switchView('view-therapist');
+        } else if (pass !== null) {
+            alert("密碼錯誤，拒絕存取");
+        }
+    }
+
+    // --- 資料操作邏輯 ---
+    async function submitPatient() {
+        const name = document.getElementById('p-name').value;
+        const phone = document.getElementById('p-phone').value;
+        const dob = document.getElementById('p-dob').value;
+        if(!name || !phone) return alert("姓名電話必填");
+        
+        const { error } = await db.from('patients').insert([{ name, phone, dob, consent_signed: true }]);
+        if (error) {
+            document.getElementById('status').innerHTML = `<span style="color:red">失敗: ${error.message}</span>`;
+        } else {
+            document.getElementById('status').innerHTML = '<span style="color:green">✅ 初診資料已建立！</span>';
+            setTimeout(() => switchView('view-home'), 2000);
+        }
+    }
+
+    async function searchPatient() {
+        const phone = document.getElementById('t-search').value;
+        const { data, error } = await db.from('patients').select('id, name').eq('phone', phone).single();
+        if (data) {
+            curId = data.id;
+            document.getElementById('t-display-name').innerText = data.name;
+            document.getElementById('t-info').style.display = 'block';
+            document.getElementById('soap-form').style.display = 'block';
+        } else {
+            alert("找不到該病患");
+        }
+    }
+
+    async function submitSoap() {
+        const { error } = await db.from('daily_notes').insert([{
+            patient_id: curId,
+            subjective: document.getElementById('note-s').value,
+            objective: document.getElementById('note-o').value,
+            assessment: document.getElementById('note-a').value,
+            plan: document.getElementById('note-p').value
+        }]);
+        if (!error) {
+            alert("病歷已儲存！");
+            location.reload();
+        }
+    }
+</script>
+
+</body>
+</html>
