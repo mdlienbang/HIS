@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>連邦物理治療所 | 旗艦病程管理系統</title>
+    <title>連邦物理治療所 | HIS病程管理系統</title>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
@@ -88,7 +88,7 @@
 <div id="view-home" class="view active" style="max-width: 600px; text-align: center; margin-top: 10vh;">
     <div class="card" style="padding: 50px 30px;">
         <h1 style="color: var(--primary); font-size: 2.5rem; margin-top: 0;">連邦物理治療所</h1>
-        <p style="color: #64748b; margin-bottom: 40px; font-size: 1.2rem;">智慧病程管理系統</p>
+        <p style="color: #64748b; margin-bottom: 40px; font-size: 1.2rem;">HIS病程管理系統</p>
         <div style="display: flex; flex-direction: column; gap: 15px;">
             <button class="btn btn-primary" onclick="switchView('view-patient')">🏥 填寫初診資料 (客戶端)</button>
             <button class="btn btn-outline" onclick="switchView('view-therapist')">👨‍⚕️ 進入診間面板 (治療師端)</button>
@@ -111,7 +111,7 @@
             <div class="form-grid" style="background:#f0f9ff; padding:20px; border-radius:8px; border:1px solid #bae6fd;">
                 <div><label>0. 服務院別</label><select id="p-branch"><option>小巨蛋總院</option><option>明德分院</option></select></div>
                 <div><label>1. 是否為新客戶</label><select id="p-new"><option>是</option><option>否</option></select></div>
-                <div class="full-width"><label>2. 客戶編號 (若無請留空)</label><input type="text" id="p-no" placeholder="例如：MD1150400001" style="border-color:var(--primary); background:white;"></div>
+                <div class="full-width"><label>2. 客戶編號 (若無請留空)</label><input type="text" id="p-no" placeholder="例如：M1150400001" style="border-color:var(--primary); background:white;"></div>
             </div>
 
             <div class="section-title">個人基本資料</div>
@@ -129,9 +129,9 @@
                 
                 <div class="full-width" style="text-align: center; background: #f8fafc; padding: 25px; border-radius: 12px; border: 2px dashed #bae6fd;">
                     <label style="color: var(--primary); font-size: 1.15rem;">12. 官方 LINE 帳號 (請掃描加入建檔)</label>
-                    <p style="color: #64748b; margin-top: 5px; margin-bottom: 15px; font-size: 0.95rem;">💡 加入官方 LINE 不僅能幫助我們更順暢地為您建檔，您還能第一時間接收專屬的衛教資訊與預約提醒喔！</p>
+                    <p style="color: #64748b; margin-top: 5px; margin-bottom: 15px; font-size: 0.95rem;">💡 加入官方 LINE 不僅能幫助我們更順暢地為您建檔，您若有問題也能後續詢問與第一時間接收預約提醒喔！</p>
                     
-                    <img src="./M_168tshcw_GW.png" alt="LINE QR Code" style="width: 180px; height: 180px; margin: 0 auto; border-radius: 10px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);" onerror="this.onerror=null; this.alt='圖片載入失敗，請確認 Github 上的檔名與路徑是否正確為 M_168tshcw_GW.png'; this.style.border='1px solid red';">
+                    <img src="https://github.com/mdlienbang/HIS/blob/main/M_168tshcw_GW.png?raw=true" alt="LINE QR Code" style="width: 180px; height: 180px; margin: 0 auto; border-radius: 10px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);" onerror="this.onerror=null; this.alt='圖片載入中，請確保網址正確';">
                     
                     <select id="p-line" style="max-width: 350px; margin: 15px auto 0; font-weight: bold; color: var(--primary);">
                         <option value="已加入">✅ 我已完成掃描並加入官方 LINE</option>
@@ -288,10 +288,10 @@
                                 <div style="background:#f8fafc; padding:15px; border-radius:8px; border:1px solid var(--border);">
                                     <h4 style="text-align:center; margin-top:0; color:var(--primary);">🔴 痛點標記</h4>
                                     <div class="canvas-grid">
-                                        <div class="canvas-box">正面<canvas id="c-front" style="background-image: url('./正面.png');"></canvas></div>
-                                        <div class="canvas-box">背面<canvas id="c-back" style="background-image: url('./背面.png');"></canvas></div>
-                                        <div class="canvas-box">左側面<canvas id="c-left" style="background-image: url('./左側面.png');"></canvas></div>
-                                        <div class="canvas-box">右側面<canvas id="c-right" style="background-image: url('./右側面.png');"></canvas></div>
+                                        <div class="canvas-box">正面<canvas id="c-front" style="background-image: url('https://github.com/mdlienbang/HIS/blob/main/%E6%AD%A3%E9%9D%A2.png?raw=true');"></canvas></div>
+                                        <div class="canvas-box">背面<canvas id="c-back" style="background-image: url('https://github.com/mdlienbang/HIS/blob/main/%E8%83%8C%E9%9D%A2.png?raw=true');"></canvas></div>
+                                        <div class="canvas-box">左側面<canvas id="c-left" style="background-image: url('https://github.com/mdlienbang/HIS/blob/main/%E5%B7%A6%E5%81%B4%E9%9D%A2.png?raw=true');"></canvas></div>
+                                        <div class="canvas-box">右側面<canvas id="c-right" style="background-image: url('https://github.com/mdlienbang/HIS/blob/main/%E5%8F%B3%E5%81%B4%E9%9D%A2.png?raw=true');"></canvas></div>
                                     </div>
                                     <button class="btn btn-outline" style="width:100%; margin-top:10px;" onclick="clearCanvases()">清除重畫</button>
                                 </div>
@@ -717,10 +717,10 @@
                     const maps = JSON.parse(n.body_map_data);
                     imgHtml = `
                         <div style="display:flex; gap:10px; margin-top:10px; overflow-x:auto;">
-                            <img src="${maps.front}" style="height:120px; border:1px solid #ccc; cursor:zoom-in; background:white;" onclick="zoomImg(this.src)">
-                            <img src="${maps.back}" style="height:120px; border:1px solid #ccc; cursor:zoom-in; background:white;" onclick="zoomImg(this.src)">
-                            <img src="${maps.left}" style="height:120px; border:1px solid #ccc; cursor:zoom-in; background:white;" onclick="zoomImg(this.src)">
-                            <img src="${maps.right}" style="height:120px; border:1px solid #ccc; cursor:zoom-in; background:white;" onclick="zoomImg(this.src)">
+                            <img src="${maps.front}" style="height:120px; border:1px solid #ccc; cursor:zoom-in; background:white; object-fit:contain;" onclick="zoomImg(this.src)">
+                            <img src="${maps.back}" style="height:120px; border:1px solid #ccc; cursor:zoom-in; background:white; object-fit:contain;" onclick="zoomImg(this.src)">
+                            <img src="${maps.left}" style="height:120px; border:1px solid #ccc; cursor:zoom-in; background:white; object-fit:contain;" onclick="zoomImg(this.src)">
+                            <img src="${maps.right}" style="height:120px; border:1px solid #ccc; cursor:zoom-in; background:white; object-fit:contain;" onclick="zoomImg(this.src)">
                         </div>`;
                 } catch(e) {}
             }
